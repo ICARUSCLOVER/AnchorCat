@@ -4,7 +4,7 @@ public class QtipController : MonoBehaviour
 {
     [Header("Sticking 检测")]
     public string triggerTag = "BoogerTip";
-    public float stickHoldTime = 2f;
+    public float stickHoldTime = 5f;
 
     [Header("圆圈进度条")]
     public CircleProgressBar circleProgress;

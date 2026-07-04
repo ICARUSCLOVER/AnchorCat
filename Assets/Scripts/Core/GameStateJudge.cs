@@ -31,6 +31,10 @@ public class GameStateJudge : MonoBehaviour
     [Tooltip("拉完多少鼻涕算胜利(0-1 比例)")]
     public float winThreshold = 0.99f;
 
+    [Header("事件系统")]
+    public bool enableEvents = true;
+    private bool eventsStarted = false;
+
     [Header("调试")]
     public bool showDebugLog = true;
 
@@ -59,7 +63,7 @@ public class GameStateJudge : MonoBehaviour
                 break;
 
             case GameSubState.Sticking:
-                // 等 QtipController 触发切到 Rolling
+                // 等 QtipController 触发
                 break;
 
             case GameSubState.Rolling:
@@ -68,7 +72,7 @@ public class GameStateJudge : MonoBehaviour
         }
     }
 
-    // ========== Intro 计时 ==========
+    // ========== Intro ==========
     void UpdateIntroTimer()
     {
         if (hasAppeared) return;
@@ -81,19 +85,19 @@ public class GameStateJudge : MonoBehaviour
         }
     }
 
-    // ========== Rolling 阶段 ==========
+    // ========== Rolling ==========
     void UpdateRolling()
     {
         if (GameplayData.Instance == null) return;
 
-        // ⬅ 1. 时间到 → 失败
+        // 1. 时间到 → 失败
         if (GameplayData.Instance.currentTime <= 0)
         {
             OnTimeUp();
             return;
         }
 
-        // ⬅ 2. 危险区检测
+        // 2. 危险区
         if (GameplayData.Instance.IsInDangerZone())
         {
             GameplayData.Instance.dangerTime += Time.deltaTime;
@@ -105,20 +109,20 @@ public class GameStateJudge : MonoBehaviour
         }
         else
         {
-            GameplayData.Instance.dangerTime = Mathf.Max(0, 
+            GameplayData.Instance.dangerTime = Mathf.Max(0,
                 GameplayData.Instance.dangerTime - Time.deltaTime * 0.5f);
         }
 
-        // ⬅ 3. 滚轮加速
+        // 3. 滚轮
         HandleScroll();
 
-        // ⬅ 4. 胜利条件
+        // 4. 胜利
         if (IsBoogerCleared())
         {
             OnBoogerCleared();
         }
 
-        // ⬅ 调试 log
+        // 调试 log
         if (Time.frameCount % 60 == 0 && showDebugLog)
         {
             Debug.Log($"📏 length={GameplayData.Instance.currentBoogerLength:F2}/{GameplayData.Instance.maxBoogerLength}, " +
@@ -151,6 +155,13 @@ public class GameStateJudge : MonoBehaviour
         subState = GameSubState.Intro;
         hasAppeared = false;
         appearTimer = 0f;
+        eventsStarted = false;  // ⬅ 重置事件标志
+
+        // 停止事件
+        if (enableEvents && CatEventManager.Instance != null)
+        {
+            CatEventManager.Instance.StopEvents();
+        }
 
         if (GameplayData.Instance != null)
         {
@@ -164,7 +175,6 @@ public class GameStateJudge : MonoBehaviour
             Debug.Log($"[Judge] SubState: {subState} -> {newSubState}");
         subState = newSubState;
 
-        // ⬅ 进 Rolling 重置数据
         if (newSubState == GameSubState.Rolling)
         {
             if (GameplayData.Instance != null)
@@ -173,9 +183,15 @@ public class GameStateJudge : MonoBehaviour
                 Debug.Log($"[Judge] ResetData: length={GameplayData.Instance.currentBoogerLength}, " +
                           $"speed={GameplayData.Instance.currentSpeed}, time={GameplayData.Instance.currentTime}");
             }
+
+            // ⬅ 启动事件
+            if (enableEvents && CatEventManager.Instance != null && !eventsStarted)
+            {
+                CatEventManager.Instance.StartEvents();
+                eventsStarted = true;
+            }
         }
 
-        // ⬅ 进 Intro 也重置
         if (newSubState == GameSubState.Intro)
         {
             ResetSubState();
@@ -200,6 +216,13 @@ public class GameStateJudge : MonoBehaviour
     {
         if (GameManager.Instance.state == GameState.Playing)
         {
+            // ⬅ 触发成功事件 + 停止
+            if (enableEvents && CatEventManager.Instance != null)
+            {
+                CatEventManager.Instance.TriggerSuccessEvent();
+                CatEventManager.Instance.StopEvents();
+            }
+
             GameManager.Instance.OnSuccess();
             if (showDebugLog) Debug.Log("[Judge] 鼻涕拉完,通关!");
         }
@@ -209,6 +232,12 @@ public class GameStateJudge : MonoBehaviour
     {
         if (GameManager.Instance.state == GameState.Playing)
         {
+            // ⬅ 停止事件
+            if (enableEvents && CatEventManager.Instance != null)
+            {
+                CatEventManager.Instance.StopEvents();
+            }
+
             GameManager.Instance.OnGameOver();
             if (showDebugLog) Debug.Log("[Judge] 速度红区 2.5s, 鼻涕断!");
         }
@@ -217,6 +246,12 @@ public class GameStateJudge : MonoBehaviour
     public void OnTimeUp()
     {
         if (GameManager.Instance.state != GameState.Playing) return;
+
+        // ⬅ 停止事件
+        if (enableEvents && CatEventManager.Instance != null)
+        {
+            CatEventManager.Instance.StopEvents();
+        }
 
         GameManager.Instance.OnGameOver();
         if (showDebugLog) Debug.Log("[Judge] 60s 到,鼻涕没拉完,猫逃跑!");

@@ -11,8 +11,12 @@ public class ResultPanel : MonoBehaviour
     public Button retryButton;
     public Button menuButton;
 
+    [Header("Debug")]
+    public bool showDebugLog = true;
+
     void Start()
     {
+        if (panel == null) panel = gameObject;
         if (panel != null) panel.SetActive(false);
 
         if (retryButton != null)
@@ -20,12 +24,16 @@ public class ResultPanel : MonoBehaviour
 
         if (menuButton != null)
             menuButton.onClick.AddListener(OnMenuClicked);
+
+        if (showDebugLog)
+            Debug.Log($"✅ ResultPanel 启动: {gameObject.name}");
     }
 
     public void ShowSuccess(string message = "")
     {
         if (panel == null) return;
         panel.SetActive(true);
+        if (showDebugLog) Debug.Log($"✅ 显示成功: {message}");
 
         if (titleText != null)
         {
@@ -43,6 +51,7 @@ public class ResultPanel : MonoBehaviour
     {
         if (panel == null) return;
         panel.SetActive(true);
+        if (showDebugLog) Debug.Log($"❌ 显示失败: {message}");
 
         if (titleText != null)
         {
@@ -63,11 +72,13 @@ public class ResultPanel : MonoBehaviour
 
     void OnRetryClicked()
     {
+        if (showDebugLog) Debug.Log("🔄 点重试");
         GameManager.Instance.Restart();
     }
 
     void OnMenuClicked()
     {
+        if (showDebugLog) Debug.Log("📋 点主菜单");
         GameManager.Instance.BackToMenu();
     }
 }

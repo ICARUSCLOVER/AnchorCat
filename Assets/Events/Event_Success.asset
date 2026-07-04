@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 770f68b9104d6124a99a597d621e0ea1, type: 3}
+  m_Name: Event_Success
+  m_EditorClassIdentifier: 
+  eventName: Cat Event
+  eventType: 1
+  catSprite: {fileID: 0}
+  catSound: {fileID: 0}
+  triggerTime: 5
+  triggerChance: 0.5
+  qteType: 1
+  qteDuration: 3
+  qteTargetCount: 5
+  qteKey: 32
+  successSpeedRange:
+    min: 5
+    max: 15
+  successTimeRange:
+    min: 3
+    max: 8
+  successLengthReduceRange:
+    min: 0.5
+    max: 2
+  successDangerLimitRange:
+    min: 0.5
+    max: 1.5
+  failSpeedRange:
+    min: 5
+    max: 15
+  failTimeRange:
+    min: 3
+    max: 8
+  failLengthIncreaseRange:
+    min: 0.5
+    max: 2
+  failDangerLimitRange:
+    min: 0.5
+    max: 1.5
+  animatorTrigger: Uncomfortable

@@ -8,10 +8,18 @@ public class MenuController : MonoBehaviour
     public void RestartGame()  { if (GameManager.Instance != null) GameManager.Instance.Restart(); }
     public void QuitGame()
     {
-        #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-        #else
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
             Application.Quit();
-        #endif
+#endif
+    }
+    
+ public void ToggleMute()
+    {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ToggleMute();
+        }
     }
 }
