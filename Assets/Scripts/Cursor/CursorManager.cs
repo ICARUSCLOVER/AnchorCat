@@ -1,17 +1,22 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class CursorManager : MonoBehaviour
 {
-    [Header("设置")]
+    public static CursorManager Instance { get; private set; }
+
+    [Header("鼠标配置")]
+    public string cursorTag = "Cursor";
+    public float moveSpeed = 15f;
     public bool hideSystemCursor = true;
+
+    [Header("调试")]
     public bool showDebugLog = true;
 
-    [Header("Qtip 平滑")]
-    public float moveSpeed = 15f;
+    [Header("跳过场景")]
+    public string[] skipScenes = { "Persistent" };
 
-    private Transform qtipCursor;
-
-    public static CursorManager Instance { get; private set; }
+    private Transform cursorObject;
 
     public Vector3 MouseWorldPos
     {
@@ -23,16 +28,6 @@ public class CursorManager : MonoBehaviour
             return worldPos;
         }
     }
-
-    // ⬇⬇⬇ 加这一段 ⬇⬇⬇
-    /// <summary>
-    /// 获取 Qtip 当前世界位置(给 BoogerController 等用)
-    /// </summary>
-    public Vector3 GetQtipPosition()
-    {
-        return qtipCursor != null ? qtipCursor.position : Vector3.zero;
-    }
-    // ⬆⬆⬆ 加这一段 ⬆⬆⬆
 
     void Awake()
     {
@@ -50,15 +45,8 @@ public class CursorManager : MonoBehaviour
 
     void Start()
     {
-        // 自动找子物体 Qtip
-        if (qtipCursor == null)
-            qtipCursor = transform.Find("Qtip");
-
-        if (qtipCursor != null)
-            qtipCursor.position = MouseWorldPos;   
-
-        if (hideSystemCursor)
-            Cursor.visible = false;
+        if (hideSystemCursor) Cursor.visible = false;
+        FindCursorInCurrentScene();
     }
 
     void OnDestroy()
@@ -67,42 +55,123 @@ public class CursorManager : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
-    void Update()
+    void OnEnable()
     {
-        UpdateQtip();
-        DetectClick();
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    private void UpdateQtip()
+    void OnDisable()
     {
-        if (qtipCursor == null) return;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
 
-        // 直接跟手,没限制
-        qtipCursor.position = Vector3.Lerp(
-            qtipCursor.position,
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (IsSkipScene(scene.name)) return;
+        FindCursorInScene(scene);
+    }
+
+    void FindCursorInCurrentScene()
+    {
+        Scene scene = SceneManager.GetActiveScene();
+        if (IsSkipScene(scene.name)) return;
+        FindCursorInScene(scene);
+    }
+
+    bool IsSkipScene(string sceneName)
+    {
+        if (skipScenes == null) return false;
+        foreach (var skip in skipScenes)
+        {
+            if (skip == sceneName) return true;
+        }
+        return false;
+    }
+
+    void FindCursorInScene(Scene scene)
+    {
+        if (!scene.IsValid()) return;
+
+        GameObject[] roots = scene.GetRootGameObjects();
+        foreach (var root in roots)
+        {
+            Transform found = FindByTagRecursive(root.transform, cursorTag);
+            if (found != null)
+            {
+                SetCursor(found);
+                if (showDebugLog)
+                    Debug.Log($"🖱️ 找到鼠标物体: {scene.name} / {found.name}");
+                return;
+            }
+        }
+
+        SetCursor(null);
+        if (showDebugLog)
+            Debug.Log($"🖱️ 场景 {scene.name} 没鼠标物体,用系统鼠标");
+    }
+
+    Transform FindByTagRecursive(Transform parent, string tag)
+    {
+        if (parent.CompareTag(tag)) return parent;
+
+        foreach (Transform child in parent)
+        {
+            Transform found = FindByTagRecursive(child, tag);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    public void SetCursor(Transform newCursor)
+    {
+        if (cursorObject != null)
+        {
+            cursorObject.gameObject.SetActive(false);
+        }
+
+        cursorObject = newCursor;
+
+        if (cursorObject != null)
+        {
+            cursorObject.gameObject.SetActive(true);
+            cursorObject.position = MouseWorldPos;
+            Cursor.visible = false;
+        }
+        else
+        {
+            Cursor.visible = true;
+        }
+    }
+
+    /// <summary>
+    /// 获取当前鼠标物体 Transform(给其他系统用,如 QtipController)
+    /// </summary>
+    public Transform GetCursorTransform()
+    {
+        return cursorObject;
+    }
+
+    /// <summary>
+    /// 获取 Qtip 当前位置(给 BoogerController 等用)
+    /// </summary>
+    public Vector3 GetQtipPosition()
+    {
+        return cursorObject != null ? cursorObject.position : Vector3.zero;
+    }
+
+    void Update()
+    {
+        UpdateCursor();
+    }
+
+    void UpdateCursor()
+    {
+        if (cursorObject == null) return;
+
+        cursorObject.position = Vector3.Lerp(
+            cursorObject.position,
             MouseWorldPos,
             moveSpeed * Time.deltaTime
         );
-    }
-
-    private void DetectClick()
-    {
-        if (!Input.GetMouseButtonDown(0)) return;
-
-        Collider2D hit = Physics2D.OverlapPoint(MouseWorldPos);
-        if (hit != null)
-        {
-            IClickable clickable = hit.GetComponent<IClickable>();
-            if (clickable != null)
-            {
-                clickable.OnClick();
-                if (showDebugLog)
-                    Debug.Log($"点击了: {hit.gameObject.name}");
-            }
-            else if (showDebugLog)
-            {
-                Debug.Log($"点击了无响应物体: {hit.gameObject.name}");
-            }
-        }
     }
 }

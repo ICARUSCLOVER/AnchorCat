@@ -25,6 +25,11 @@ public class GameHUD : MonoBehaviour
         if (barRect == null || pointerRect == null) return;
         var data = GameplayData.Instance;
 
+        bool showBar = GameStateJudge.Instance.IsInRolling();
+        barRect.gameObject.SetActive(showBar);
+        pointerRect.gameObject.SetActive(showBar);
+        if (!showBar) return;
+
         float barHeight = barRect.rect.height;
         float maxSpeed = data.maxSpeed;
         float t = Mathf.Clamp01(data.currentSpeed / maxSpeed);
@@ -47,7 +52,7 @@ public class GameHUD : MonoBehaviour
         {
             int timeLeft = Mathf.CeilToInt(GameplayData.Instance.currentTime);
             timerText.text = $"{timeLeft:D2}";
-            timerText.color = timeLeft <= 10 ? Color.red : Color.white;
+            timerText.color = timeLeft <= 10 ? Color.red : Color.black;
         }
     }
 }

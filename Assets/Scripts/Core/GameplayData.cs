@@ -5,7 +5,7 @@ public class GameplayData : MonoBehaviour
     public static GameplayData Instance;
 
     [Header("鼻涕")]
-    public float currentBoogerLength = 10f;     // ⬅ 初始 10
+    public float currentBoogerLength = 10f;
     public float maxBoogerLength = 10f;
 
     [Header("倒计时")]
@@ -16,10 +16,9 @@ public class GameplayData : MonoBehaviour
     public float currentSpeed = 0f;
     public float maxSpeed = 100f;
     public float speedDecayPerSecond = 10f;
-    public float speedAddPerScroll = 5f;
 
     [Header("鼻涕消耗")]
-    public float boogerConsumeRate = 0.4f;     // 最大消耗率
+    public float boogerConsumeRate = 0.4f;
 
     [Header("危险区域")]
     public float dangerSpeed = 85f;
@@ -27,7 +26,7 @@ public class GameplayData : MonoBehaviour
     public float dangerLimit = 2.5f;
 
     [Header("安全区")]
-    public float safeSpeedMax = 60f;            // 绿色区上限
+    public float safeSpeedMax = 60f;
 
     void Awake()
     {
@@ -41,59 +40,34 @@ public class GameplayData : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
+        ResetData();
     }
 
     void Update()
     {
+        // ⬅ 只在 Rolling 阶段更新数据
         if (GameManager.Instance == null) return;
         if (GameStateJudge.Instance == null) return;
         if (GameManager.Instance.state != GameState.Playing) return;
-
-        // 只在 Rolling 阶段跑
         if (!GameStateJudge.Instance.IsInRolling()) return;
 
         // 1. 倒计时
         currentTime -= Time.deltaTime;
-        if (currentTime <= 0)
-        {
-            currentTime = 0;
-            GameStateJudge.Instance.OnTimeUp();
-            return;
-        }
+        currentTime = Mathf.Max(0, currentTime);
 
-        // 2. 速度自然衰减
+        // 2. 速度衰减
         currentSpeed = Mathf.Max(0, currentSpeed - speedDecayPerSecond * Time.deltaTime);
 
-        // 3. 鼻涕消耗(根据速度)
+        // 3. 鼻涕消耗
         float consumeRate = (currentSpeed / maxSpeed) * boogerConsumeRate;
         currentBoogerLength = Mathf.Max(0, currentBoogerLength - consumeRate * Time.deltaTime);
-
-        // 4. 鼻涕拉完 → 成功
-        if (currentBoogerLength <= 0)
-        {
-            GameStateJudge.Instance.OnBoogerCleared();
-        }
-
-        // 5. 危险区判定
-        if (currentSpeed >= dangerSpeed)
-        {
-            dangerTime += Time.deltaTime;
-            if (dangerTime >= dangerLimit)
-            {
-                GameStateJudge.Instance.OnSpeedTooHigh();
-            }
-        }
-        else
-        {
-            dangerTime = 0f;
-        }
     }
 
     public void AddSpeed(float amount)
     {
         if (GameStateJudge.Instance == null) return;
         if (!GameStateJudge.Instance.IsInRolling()) return;
-
         currentSpeed = Mathf.Clamp(currentSpeed + amount, 0, maxSpeed);
     }
 
