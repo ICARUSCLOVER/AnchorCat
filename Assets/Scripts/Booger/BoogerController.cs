@@ -3,120 +3,122 @@ using UnityEngine;
 [RequireComponent(typeof(LineRenderer))]
 public class BoogerController : MonoBehaviour
 {
-    [Header("A 点(起点)")]
-    public Transform pointA;
-
-    [Header("B 点控制(独立脚本)")]
-    public BPointController bPointController;
+    [Header("连接点")]
+    public Transform catNose;
 
     [Header("线段")]
     public int segments = 20;
-    public float minWidth = 0.05f;
+    public float baseWidth = 0.1f;
     public float maxWidth = 0.3f;
 
-    [Header("视觉下垂(在 B 点下垂基础上)")]
-    public float visualDroop = 0.1f;
+    [Header("下垂")]
+    public float droopAmount = 0.3f;
 
-    [Header("视觉摆动")]
-    public float visualSwayAmount = 0.02f;
-    public float visualSwaySpeed = 2f;
+    [Header("甩动(按子状态)")]
+    public float introSwayAmount = 0.03f;
+    public float introSwaySpeed = 1f;
+    public float stickingSwayAmount = 0.15f;
+    public float stickingSwaySpeed = 3f;
+    public float rollingSwayAmount = 0.1f;
+    public float rollingSwaySpeed = 3f;
 
-    [Header("颜色")]
-    public Color normalColor = Color.yellow;
-    public Color successColor = Color.green;
-    public Color dangerColor = Color.red;
+    [Header("速度加成")]
+    public float speedSwayBoost = 0.1f;
 
-    [Header("粗细控制")]
-    public float speedWidthFactor = 0.1f;
+    [Header("B 点参考(粘住检测)")]
+    public float boogerTipDownOffset = 0.5f;
 
     private LineRenderer line;
     private Vector3[] positions;
+    private Vector3 currentBoogerTip;
 
     void Start()
     {
         line = GetComponent<LineRenderer>();
         line.positionCount = segments;
+        line.startColor = Color.yellow;
+        line.endColor = Color.yellow;
         line.material = new Material(Shader.Find("Sprites/Default"));
         positions = new Vector3[segments];
     }
 
     void Update()
     {
-        if (pointA == null || bPointController == null) return;
+        if (catNose == null) return;
         if (GameplayData.Instance == null) return;
-        if (GameStateJudge.Instance == null) return;
         if (GameManager.Instance == null) return;
+        if (GameStateJudge.Instance == null) return;
 
         var data = GameplayData.Instance;
         var subState = GameStateJudge.Instance.subState;
         var gmState = GameManager.Instance.state;
 
-        // 1. 从 BPointController 获取 B 点位置
-        Vector3 pointB = bPointController.GetBPointPosition();
-
-        // 2. 计算鼻涕宽度
-        float width = CalculateWidth(data);
+        // 1. 鼻涕宽度
+        float lengthT = data.currentBoogerLength / data.maxBoogerLength;
+        float width = Mathf.Lerp(maxWidth, baseWidth, lengthT);
         line.startWidth = width;
         line.endWidth = width;
 
-        // 3. 计算鼻涕颜色
-        Color color = CalculateColor(gmState, subState, data);
-        line.startColor = color;
-        line.endColor = color;
+        // 2. 鼻涕颜色
+        Color boogerColor = Color.yellow;
+        if (gmState == GameState.Success)
+        {
+            boogerColor = Color.green;
+        }
+        else if (gmState == GameState.GameOver)
+        {
+            boogerColor = Color.red;
+        }
+        else if (subState == GameSubState.Rolling && data.IsInDangerZone())
+        {
+            boogerColor = Color.red;
+        }
+        line.startColor = boogerColor;
+        line.endColor = boogerColor;
 
-        // 4. 画线段
-        DrawBooger(pointB, data);
-    }
+        // 3. 选甩动幅度
+        float swayAmount = 0f;
+        float swaySpeed = 1f;
 
-    /// <summary>
-    /// 鼻涕宽度:剩余长度 + 速度影响
-    /// </summary>
-    float CalculateWidth(GameplayData data)
-    {
-        // 基础:跟剩余长度成反比
-        float lengthT = data.currentBoogerLength / data.maxBoogerLength;
-        float baseWidth = Mathf.Lerp(maxWidth, minWidth, lengthT);
+        switch (subState)
+        {
+            case GameSubState.Intro:
+                swayAmount = introSwayAmount;
+                swaySpeed = introSwaySpeed;
+                break;
+            case GameSubState.Sticking:
+                swayAmount = stickingSwayAmount;
+                swaySpeed = stickingSwaySpeed;
+                break;
+            case GameSubState.Sticked:
+            case GameSubState.Rolling:
+                swayAmount = rollingSwayAmount +
+                             (data.currentSpeed / data.maxSpeed) * speedSwayBoost;
+                swaySpeed = rollingSwaySpeed + data.currentSpeed / 20f;
+                break;
+        }
 
-        // 速度影响:速度高 → 紧绷 → 细
-        float speedRatio = data.currentSpeed / data.maxSpeed;
-        float speedWidth = baseWidth * (1f - speedRatio * speedWidthFactor);
+        // 4. 计算 B 点(用于粘住检测)
+        float baseDownOffset = boogerTipDownOffset * lengthT;
+        float baseSwayX = Mathf.Sin(Time.time * swaySpeed) * swayAmount * 1f;
 
-        return Mathf.Max(speedWidth, minWidth);
-    }
+        currentBoogerTip = new Vector3(
+            catNose.position.x + baseSwayX,
+            catNose.position.y - baseDownOffset,
+            catNose.position.z
+        );
 
-    /// <summary>
-    /// 鼻涕颜色
-    /// </summary>
-    Color CalculateColor(GameState gmState, GameSubState subState, GameplayData data)
-    {
-        if (gmState == GameState.Success) return successColor;
-        if (gmState == GameState.GameOver) return dangerColor;
-        if (subState == GameSubState.Rolling && data.IsInDangerZone())
-            return dangerColor;
-        return normalColor;
-    }
-
-    /// <summary>
-    /// 画鼻涕线段
-    /// </summary>
-    void DrawBooger(Vector3 pointB, GameplayData data)
-    {
-        float lengthT = data.currentBoogerLength / data.maxBoogerLength;
-
+        // 5. 画线段
         for (int i = 0; i < segments; i++)
         {
             float ratio = (float)i / (segments - 1);
-            positions[i] = Vector3.Lerp(pointA.position, pointB, ratio);
+            positions[i] = Vector3.Lerp(catNose.position, currentBoogerTip, ratio);
 
-            // 视觉下垂(在 B 点下垂基础上,中间弧度更大)
-            float droop = Mathf.Sin(ratio * Mathf.PI) * visualDroop * lengthT;
+            float droop = Mathf.Sin(ratio * Mathf.PI) * droopAmount * lengthT;
             positions[i].y -= droop;
 
-            // 视觉摆动(Sticked 前轻微摆,Sticked 后归零)
-            float mouseControlWeight = bPointController.IsMouseControlled() ? 0f : 1f;
             float swayWeight = Mathf.Sin(ratio * Mathf.PI);
-            float sway = Mathf.Sin(Time.time * visualSwaySpeed + i * 0.3f)
-                         * visualSwayAmount * swayWeight * mouseControlWeight;
+            float sway = Mathf.Sin(Time.time * swaySpeed + i * 0.3f) * swayAmount * swayWeight;
             positions[i].x += sway;
         }
 
@@ -128,13 +130,13 @@ public class BoogerController : MonoBehaviour
     /// </summary>
     public Vector3 GetBoogerTip()
     {
-        return bPointController != null ? bPointController.GetBPointPosition() : Vector3.zero;
+        return currentBoogerTip;
     }
 
     void OnDrawGizmos()
     {
-        if (pointA == null || bPointController == null) return;
+        if (catNose == null) return;
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(bPointController.GetBPointPosition(), 0.1f);
+        Gizmos.DrawWireSphere(currentBoogerTip, 0.1f);
     }
 }
