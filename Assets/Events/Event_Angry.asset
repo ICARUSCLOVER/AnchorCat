@@ -18,7 +18,7 @@ MonoBehaviour:
   catSound: {fileID: 0}
   triggerTime: 5
   triggerChance: 0.5
-  qteType: 0
+  qteType: 2
   qteDuration: 3
   qteTargetCount: 5
   qteKey: 32

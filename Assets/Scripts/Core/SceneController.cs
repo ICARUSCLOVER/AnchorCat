@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using System.Collections.Generic;
 
 public class SceneController : MonoBehaviour
 {
@@ -62,19 +63,32 @@ public class SceneController : MonoBehaviour
 
     private IEnumerator SwitchSceneRoutine(string sceneName)
     {
-        // 1. 加载新场景
+        // ⬅ 1. 先卸载其他非 Persistent 场景
+        yield return StartCoroutine(UnloadAllExceptPersistent(sceneName));
+
+        // ⬅ 2. 再加载新场景
         AsyncOperation loadOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
         if (loadOp != null) yield return loadOp;
+    }
 
-        // 2. 卸载其他场景
-        for (int i = SceneManager.sceneCount - 1; i >= 0; i--)
+    private IEnumerator UnloadAllExceptPersistent(string keepScene)
+    {
+        // 收集要卸载的场景
+        List<Scene> toUnload = new List<Scene>();
+        for (int i = 0; i < SceneManager.sceneCount; i++)
         {
             Scene scene = SceneManager.GetSceneAt(i);
-            if (scene.name != persistentSceneName && scene.name != sceneName && scene.isLoaded)
+            if (scene.name != persistentSceneName && scene.name != keepScene && scene.isLoaded)
             {
-                AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(scene);
-                if (unloadOp != null) yield return unloadOp;
+                toUnload.Add(scene);
             }
+        }
+
+        // 逐个卸载
+        foreach (var scene in toUnload)
+        {
+            AsyncOperation op = SceneManager.UnloadSceneAsync(scene);
+            if (op != null) yield return op;
         }
     }
 

@@ -71,8 +71,14 @@ public class QtipController : MonoBehaviour
                 if (showDebugLog) Debug.Log("✅ 进入触发区");
             }
 
-            // 跟随鼻涕末端
-            circleProgress.transform.position = currentTrigger.position;
+
+             if (CursorManager.Instance.GetCursorTransform() != null)
+        {
+            Vector3 cursorPos = CursorManager.Instance.GetCursorTransform().position;
+                circleProgress.transform.position = cursorPos + new Vector3(-0.8f, -0.8f, 0);
+
+        }
+
 
             // 按住左键 → 进度增加
             if (Input.GetMouseButton(0))
@@ -83,6 +89,10 @@ public class QtipController : MonoBehaviour
                 if (circleProgress.IsFull())
                 {
                     if (showDebugLog) Debug.Log("🎯 进度满了,进入 Sticked");
+                     if (CatEventManager.Instance != null)
+    {
+        CatEventManager.Instance.TriggerSuccessEvent();
+    }
                     GameStateJudge.Instance.SetSubState(GameSubState.Rolling);
                     HideProgress();
                     wasInZone = false;

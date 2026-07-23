@@ -52,7 +52,7 @@ public class GameHUD : MonoBehaviour
         {
             int timeLeft = Mathf.CeilToInt(GameplayData.Instance.currentTime);
             timerText.text = $"{timeLeft:D2}";
-            timerText.color = timeLeft <= 10 ? Color.red : Color.black;
+            timerText.color = timeLeft <= 10 ? Color.red : Color.white;
         }
     }
 }

@@ -12,12 +12,12 @@ public class BoogerController : MonoBehaviour
     public float animationSpeed = 1f;
 
     [Header("线段")]
-    public int segments = 35;
+    public int segments = 25;
     public float baseWidth = 0.15f;
     public float maxWidth = 0.3f;
 
     [Header("下垂")]
-    public float droopAmount = 0.3f;
+    public float droopAmount = 0.2f;
 
     [Header("甩动(按子状态)")]
     [Tooltip("钟摆角度(度),越大越夸张")]
@@ -25,11 +25,11 @@ public class BoogerController : MonoBehaviour
     public float introSwaySpeed = 1.5f;
     public float stickingSwayAngle = 80f;     // Sticking 大幅摆
     public float stickingSwaySpeed = 5f;
-    public float rollingSwayAngle = 10f;       // Rolling 摆(虽然跟鼠标,但视觉惯性)
+    public float rollingSwayAngle = 8f;       // Rolling 摆(虽然跟鼠标,但视觉惯性)
     public float rollingSwaySpeed = 4f;
 
     [Header("速度加成(角度)")]
-    public float speedAngleBoost = 18f;       // 速度越高,摆得越厉害
+    public float speedAngleBoost = 12f;       // 速度越高,摆得越厉害
 
     [Header("颜色")]
     public Color normalColor = Color.yellow;

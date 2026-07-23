@@ -12,38 +12,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 770f68b9104d6124a99a597d621e0ea1, type: 3}
   m_Name: Event_Success
   m_EditorClassIdentifier: 
-  eventName: Cat Event
-  eventType: 1
+  eventName: Success
+  eventType: 4
   catSprite: {fileID: 0}
   catSound: {fileID: 0}
-  triggerTime: 5
-  triggerChance: 0.5
-  qteType: 1
-  qteDuration: 3
-  qteTargetCount: 5
-  qteKey: 32
+  triggerTime: 0
+  triggerChance: 0
+  qteType: 0
+  qteDuration: 0
+  qteTargetCount: 0
+  qteKey: 0
   successSpeedRange:
-    min: 5
-    max: 15
+    min: 0
+    max: 0
   successTimeRange:
-    min: 3
-    max: 8
+    min: 0
+    max: 0
   successLengthReduceRange:
-    min: 0.5
-    max: 2
+    min: 0
+    max: 0
   successDangerLimitRange:
-    min: 0.5
-    max: 1.5
+    min: 0
+    max: 0
   failSpeedRange:
-    min: 5
-    max: 15
+    min: 0
+    max: 0
   failTimeRange:
-    min: 3
-    max: 8
+    min: 0
+    max: 0
   failLengthIncreaseRange:
-    min: 0.5
-    max: 2
+    min: 0
+    max: 0
   failDangerLimitRange:
-    min: 0.5
-    max: 1.5
+    min: 0
+    max: 0
   animatorTrigger: Uncomfortable

@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 770f68b9104d6124a99a597d621e0ea1, type: 3}
   m_Name: Event_Uncomfortable
   m_EditorClassIdentifier: 
-  eventName: Start
-  eventType: 0
+  eventName: Uncomfortable
+  eventType: 1
   catSprite: {fileID: 0}
   catSound: {fileID: 0}
   triggerTime: 5
   triggerChance: 0.5
-  qteType: 0
+  qteType: 1
   qteDuration: 3
   qteTargetCount: 5
-  qteKey: 32
+  qteKey: 99
   successSpeedRange:
     min: 5
     max: 15

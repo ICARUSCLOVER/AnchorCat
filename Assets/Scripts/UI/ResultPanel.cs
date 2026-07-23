@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 public class ResultPanel : MonoBehaviour
 {
@@ -11,74 +12,135 @@ public class ResultPanel : MonoBehaviour
     public Button retryButton;
     public Button menuButton;
 
-    [Header("Debug")]
-    public bool showDebugLog = true;
+    [Header("动画")]
+    public float showAnimDuration = 0.3f;
+    public float startScale = 0.7f;
+
+    [Header("样式")]
+    public Color successColor = new Color(0.2f, 0.8f, 0.2f);
+    public Color failColor = new Color(0.9f, 0.2f, 0.2f);
+    public Color defaultMessageColor = Color.white;
 
     void Start()
     {
-        if (panel == null) panel = gameObject;
+        // ⬅ 启动时隐藏(不要让 panel 默认 active)
         if (panel != null) panel.SetActive(false);
 
         if (retryButton != null)
+        {
+            retryButton.onClick.RemoveAllListeners();
             retryButton.onClick.AddListener(OnRetryClicked);
+        }
 
         if (menuButton != null)
+        {
+            menuButton.onClick.RemoveAllListeners();
             menuButton.onClick.AddListener(OnMenuClicked);
-
-        if (showDebugLog)
-            Debug.Log($"✅ ResultPanel 启动: {gameObject.name}");
+        }
     }
 
     public void ShowSuccess(string message = "")
     {
-        if (panel == null) return;
-        panel.SetActive(true);
-        if (showDebugLog) Debug.Log($"✅ 显示成功: {message}");
-
-        if (titleText != null)
-        {
-            titleText.text = "Success!";
-            titleText.color = new Color(0.2f, 0.8f, 0.2f);
-        }
-
-        if (messageText != null)
-        {
-            messageText.text = string.IsNullOrEmpty(message) ? "Cleared!" : message;
-        }
+        string title = "Success!";
+        string msg = string.IsNullOrEmpty(message) ? "Cleared!" : message;
+        Show(title, successColor, msg);
     }
 
     public void ShowFailure(string message = "")
     {
-        if (panel == null) return;
-        panel.SetActive(true);
-        if (showDebugLog) Debug.Log($"❌ 显示失败: {message}");
-
-        if (titleText != null)
-        {
-            titleText.text = "Failed";
-            titleText.color = new Color(0.9f, 0.2f, 0.2f);
-        }
-
-        if (messageText != null)
-        {
-            messageText.text = string.IsNullOrEmpty(message) ? "Try Again!" : message;
-        }
+        string title = "Failed";
+        string msg = string.IsNullOrEmpty(message) ? "Try Again!" : message;
+        Show(title, failColor, msg);
     }
 
+    void Show(string title, Color titleColor, string message)
+    {
+        if (panel == null) return;
+
+        // ⬅ 强制激活整个祖先链
+        Transform t = panel.transform;
+        while (t != null)
+        {
+            if (!t.gameObject.activeSelf)
+                t.gameObject.SetActive(true);
+            t = t.parent;
+        }
+
+        // 重置 transform
+        panel.transform.localScale = Vector3.one;
+
+        // 设内容
+        if (titleText != null)
+        {
+            titleText.text = title;
+            titleText.color = titleColor;
+        }
+        if (messageText != null)
+        {
+            messageText.text = message;
+            messageText.color = defaultMessageColor;
+        }
+
+        // CanvasGroup 重置
+        CanvasGroup cg = panel.GetComponent<CanvasGroup>();
+        if (cg == null) cg = panel.AddComponent<CanvasGroup>();
+        cg.alpha = 1f;
+        cg.interactable = true;
+        cg.blocksRaycasts = true;
+
+        StopAllCoroutines();
+        StartCoroutine(ShowAnim());
+    }
+
+    IEnumerator ShowAnim()
+    {
+        if (panel == null) yield break;
+
+        Vector3 endScale = Vector3.one;
+        Vector3 startScaleVec = Vector3.one * startScale;
+        panel.transform.localScale = startScaleVec;
+
+        CanvasGroup cg = panel.GetComponent<CanvasGroup>();
+        if (cg == null) cg = panel.AddComponent<CanvasGroup>();
+        cg.alpha = 0f;
+
+        float elapsed = 0f;
+        while (elapsed < showAnimDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / showAnimDuration);
+            panel.transform.localScale = Vector3.Lerp(startScaleVec, endScale, t);
+            cg.alpha = t;
+            yield return null;
+        }
+
+        panel.transform.localScale = endScale;
+        cg.alpha = 1f;
+    }
+
+    // ⬅ 用 CanvasGroup alpha 隐藏,不用 SetActive(false)
     public void Hide()
     {
-        if (panel != null) panel.SetActive(false);
+        if (panel == null) return;
+
+        CanvasGroup cg = panel.GetComponent<CanvasGroup>();
+        if (cg == null) cg = panel.AddComponent<CanvasGroup>();
+        cg.alpha = 0f;
+        cg.interactable = false;
+        cg.blocksRaycasts = false;
+
+        StopAllCoroutines();
     }
 
     void OnRetryClicked()
     {
-        if (showDebugLog) Debug.Log("🔄 点重试");
-        GameManager.Instance.Restart();
+        if (GameManager.Instance != null)
+            GameManager.Instance.Restart();
     }
 
     void OnMenuClicked()
     {
-        if (showDebugLog) Debug.Log("📋 点主菜单");
-        GameManager.Instance.BackToMenu();
+        if (GameManager.Instance != null)
+            GameManager.Instance.BackToMenu();
     }
 }
